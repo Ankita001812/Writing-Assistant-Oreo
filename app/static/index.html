@@ -1,0 +1,430 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Writing Assistant</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: system-ui, sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 640px;
+    }
+
+    h1 {
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      color: #8b98a9;
+      margin-top: 0;
+    }
+
+    .modes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 16px 0;
+    }
+
+    .mode-btn {
+      background: #161d29;
+      color: #c9d3de;
+      border: 1px solid #232c3d;
+      padding: 6px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .mode-btn.active {
+      background: #58a6ff;
+      color: #0d1117;
+      font-weight: 600;
+    }
+
+    .chat {
+      min-height: 160px;
+      border: 1px solid #232c3d;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 10px;
+      background: #111823;
+    }
+
+    .msg {
+      margin-bottom: 12px;
+    }
+
+    .msg .label {
+      font-size: 11px;
+      color: #8b98a9;
+      text-transform: uppercase;
+    }
+
+    .msg.user .text {
+      color: #e6edf3;
+    }
+
+    .msg.ai .text {
+      color: #7ee787;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    textarea {
+      flex: 1;
+      background: #161d29;
+      color: #e6edf3;
+      border: 1px solid #232c3d;
+      border-radius: 8px;
+      padding: 10px;
+      font-family: inherit;
+      resize: vertical;
+    }
+
+    button#sendBtn {
+      background: #58a6ff;
+      color: #0d1117;
+      border: none;
+      border-radius: 8px;
+      padding: 0 20px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button#sendBtn:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .error {
+      background: #2a1215;
+      color: #f85149;
+      border: 1px solid #f85149;
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="app">
+
+    <h1>Writing Assistant for Ankita </h1>
+
+    <p class="subtitle">
+      Improving writing with AI.
+    </p>
+
+    <div class="modes" id="modes">
+
+      <button class="mode-btn active" data-mode="grammar">
+        Grammar
+      </button>
+
+      <button class="mode-btn" data-mode="paraphrase">
+        Paraphrase
+      </button>
+
+      <button class="mode-btn" data-mode="formal">
+        Formal
+      </button>
+
+      <button class="mode-btn" data-mode="polite">
+        Polite
+      </button>
+
+      <button class="mode-btn" data-mode="friendly">
+        Friendly
+      </button>
+
+      <button class="mode-btn" data-mode="concise">
+        Concise
+      </button>
+
+    </div>
+
+    <div id="chat" class="chat"></div>
+
+    <div id="error" class="error hidden"></div>
+
+    <div class="input-row">
+
+      <textarea
+        id="userText"
+        placeholder="Type your message here..."
+        rows="3"
+      ></textarea>
+
+      <button id="sendBtn">
+        Send
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <script>
+
+    // =========================================================
+    // Get references to the HTML elements we need
+    // =========================================================
+
+    const chat = document.getElementById("chat");
+
+    const errorBox = document.getElementById("error");
+
+    const textarea = document.getElementById("userText");
+
+    const sendBtn = document.getElementById("sendBtn");
+
+    const modeButtons =
+      document.querySelectorAll(".mode-btn");
+
+
+    // =========================================================
+    // Store the currently selected writing mode
+    // =========================================================
+
+    let currentMode = "grammar";
+
+
+    // =========================================================
+    // Handle writing-mode buttons
+    // =========================================================
+
+    modeButtons.forEach((btn) => {
+
+      btn.addEventListener("click", () => {
+
+        // Remove "active" from all buttons
+        modeButtons.forEach((b) => {
+          b.classList.remove("active");
+        });
+
+        // Add "active" to the button that was clicked
+        btn.classList.add("active");
+
+        // Remember which mode was selected
+        currentMode = btn.dataset.mode;
+
+      });
+
+    });
+
+
+    // =========================================================
+    // Add a message to the chat area
+    // =========================================================
+
+    function addMessage(role, text) {
+
+      const div = document.createElement("div");
+
+      div.className = `msg ${role}`;
+
+      div.innerHTML = `
+        <div class="label">
+          ${role === "user" ? "You" : "AI"}
+        </div>
+
+        <div class="text"></div>
+      `;
+
+      // textContent is safer than inserting raw HTML
+      div.querySelector(".text").textContent = text;
+
+      chat.appendChild(div);
+
+      // Automatically scroll to the newest message
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+
+    // =========================================================
+    // Show an error message
+    // =========================================================
+
+    function showError(msg) {
+
+      errorBox.textContent = msg;
+
+      errorBox.classList.remove("hidden");
+
+    }
+
+
+    // =========================================================
+    // Hide the error message
+    // =========================================================
+
+    function clearError() {
+
+      errorBox.classList.add("hidden");
+
+    }
+
+
+    // =========================================================
+    // Send the user's text to the backend
+    // =========================================================
+
+    async function sendMessage() {
+
+      // Get the text from the textarea
+      // trim() removes unnecessary spaces
+      const text = textarea.value.trim();
+
+
+      // Don't allow empty messages
+      if (!text) {
+
+        showError("Please type something first.");
+
+        return;
+
+      }
+
+
+      clearError();
+
+
+      // Show user's message immediately
+      addMessage("user", text);
+
+
+      // Clear the textarea
+      textarea.value = "";
+
+
+      // Disable button while AI is processing
+      sendBtn.disabled = true;
+
+      sendBtn.textContent = "Thinking...";
+
+
+      try {
+
+        // Send the request to the backend API
+        const response = await fetch("/api/improve", {
+
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json"
+          },
+
+          body: JSON.stringify({
+            text: text,
+            mode: currentMode
+          })
+
+        });
+
+
+        // Check whether the backend returned an error
+        if (!response.ok) {
+
+          const errData =
+            await response.json().catch(() => ({}));
+
+          throw new Error(
+            errData.detail ||
+            `Server error (${response.status})`
+          );
+
+        }
+
+
+        // Convert the response into JavaScript data
+        const data = await response.json();
+
+
+        // Display the AI's improved response
+        addMessage(
+          "ai",
+          data.improved_text
+        );
+
+
+      } catch (err) {
+
+        // Show error if something went wrong
+        showError(
+          err.message ||
+          "Something went wrong. Please try again."
+        );
+
+
+      } finally {
+
+        // Re-enable the Send button
+        sendBtn.disabled = false;
+
+        sendBtn.textContent = "Send";
+
+      }
+
+    }
+
+
+    // =========================================================
+    // Send when the Send button is clicked
+    // =========================================================
+
+    sendBtn.addEventListener(
+      "click",
+      sendMessage
+    );
+
+
+    // =========================================================
+    // Press Enter to send
+    //
+    // Shift + Enter = new line
+    // Enter = send
+    // =========================================================
+
+    textarea.addEventListener("keydown", (e) => {
+
+      if (e.key === "Enter" && !e.shiftKey) {
+
+        e.preventDefault();
+
+        sendMessage();
+
+      }
+
+    });
+
+  </script>
+
+</body>
+</html>
+
