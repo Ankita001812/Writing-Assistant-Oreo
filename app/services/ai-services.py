@@ -1,4 +1,4 @@
-import anthropic
+from groq import Groq
 from app.config import settings
 
 class AIServiceError(Exception):
@@ -37,17 +37,19 @@ while preserving the original meaning.
 {BASE_RULES}""",
 }
 
-client = anthropic.Anthropic(api_key=settings.ai_api_key)
+
+client = Groq(api_key=settings.ai_api_key)
 
 def improve_text(text: str, mode: str = "grammar") -> str:
     system_prompt = MODE_PROMPTS.get(mode, MODE_PROMPTS["grammar"])
     try:
-        response = client.messages.create(
-            model=settings.ai_model,
-            max_tokens=1000,
-            system=system_prompt,
-            messages=[{"role": "user", "content": text}],
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": text},
+            ],
         )
-        return response.content[0].text.strip()
+        return response.choices[0].message.content.strip()
     except Exception as e:
         raise AIServiceError(str(e)) from e
