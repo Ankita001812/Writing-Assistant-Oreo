@@ -1,15 +1,24 @@
-# The "application" is the logical container for your app in EB's dashboard.
 resource "aws_elastic_beanstalk_application" "app" {
-  name        = var.app_name
-  description = "AI Writing Assistant — FastAPI + Docker"
+  name = var.app_name
 }
 
-# The "environment" is the ACTUAL running infrastructure: EC2 instance(s),
-# load balancer, security groups — all provisioned automatically by EB.
 resource "aws_elastic_beanstalk_environment" "env" {
   name                = "${var.app_name}-prod"
   application         = aws_elastic_beanstalk_application.app.name
   solution_stack_name = "64bit Amazon Linux 2023 v4.4.5 running Docker"
+
+  # --- Cost control: single instance, no load balancer ---
+  setting {
+    namespace = "aws:elasticbeanstalk:environment"
+    name      = "EnvironmentType"
+    value     = "SingleInstance"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "InstanceType"
+    value     = "t3.micro"
+  }
 
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
@@ -22,13 +31,11 @@ resource "aws_elastic_beanstalk_environment" "env" {
     name      = "AI_API_KEY"
     value     = var.ai_api_key
   }
-
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "AI_MODEL"
     value     = "llama-3.3-70b-versatile"
   }
-
   setting {
     namespace = "aws:elasticbeanstalk:environment:process:default"
     name      = "HealthCheckPath"
@@ -36,7 +43,6 @@ resource "aws_elastic_beanstalk_environment" "env" {
   }
 }
 
-# Minimum IAM role EB's EC2 instances need to report health/logs back.
 resource "aws_iam_role" "eb_ec2_role" {
   name = "${var.app_name}-eb-ec2-role"
   assume_role_policy = jsonencode({
