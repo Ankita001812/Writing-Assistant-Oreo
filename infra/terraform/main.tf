@@ -34,7 +34,7 @@ resource "aws_elastic_beanstalk_environment" "env" {
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "AI_MODEL"
-    value     = "llama-3.3-70b-versatile"
+    value     = "openai/gpt-oss-120b"
   }
   setting {
     namespace = "aws:elasticbeanstalk:environment:process:default"
