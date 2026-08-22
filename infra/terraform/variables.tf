@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "app_name" {
   description = "Application name"
   type        = string
-  default     = "ai-writing-assistant"
+  default     = "oreo-the-writer"
 }
 
 variable "ai_api_key" {
